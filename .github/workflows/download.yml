@@ -1,0 +1,95 @@
+name: 下载小说
+
+# 手机浏览器操作：仓库 → Actions → “下载小说” → Run workflow → 填参数 → 跑完在 Artifacts 下载 txt
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'https://www.69shuba.com/book/18793/'
+        required: true
+        type: string
+      start:
+        description: '从第几章开始（默认 1）'
+        required: false
+        default: '15'
+        type: string
+      end:
+        description: '到第几章为止（留空=最后一章）'
+        required: false
+        default: '19'
+        type: string
+      min:
+        description: '每章最小间隔毫秒（机房 IP 建议调大，默认 8000）'
+        required: false
+        default: '8000'
+        type: string
+      max:
+        description: '每章最大间隔毫秒（默认 20000）'
+        required: false
+        default: '20000'
+        type: string
+
+# 同一本书的多次运行排队执行，避免并发同一 IP 段触发风控
+concurrency:
+  group: download-${{ github.event.inputs.url }}
+  cancel-in-progress: false
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350   # GitHub 单任务上限 6h，留余量
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装依赖与 Chromium
+        run: |
+          npm ci || npm install
+          npx playwright install --with-deps chromium
+
+      # 跨多次运行续传：把上次抓到的章节缓存下来，超时/重跑能接着抓
+      - name: 恢复已下载进度（断点续传）
+        uses: actions/cache@v4
+        with:
+          path: book_*
+          key: book-${{ hashFiles('download.js') }}-${{ github.event.inputs.url }}-${{ github.run_id }}
+          restore-keys: |
+            book-${{ hashFiles('download.js') }}-${{ github.event.inputs.url }}-
+
+      - name: 开始下载（headful + 虚拟显示器，提高过 CF 成功率）
+        env:
+          IN_URL: ${{ github.event.inputs.url }}
+          IN_START: ${{ github.event.inputs.start }}
+          IN_END: ${{ github.event.inputs.end }}
+          IN_MIN: ${{ github.event.inputs.min }}
+          IN_MAX: ${{ github.event.inputs.max }}
+        run: |
+          ARGS="$IN_URL --no-headless --start ${IN_START:-1} --min ${IN_MIN:-8000} --max ${IN_MAX:-20000}"
+          if [ -n "$IN_END" ]; then ARGS="$ARGS --end $IN_END"; fi
+          echo "运行参数: $ARGS"
+          xvfb-run -a --server-args="-screen 0 1280x800x24" node download.js $ARGS
+
+      - name: 整理产物
+        if: always()
+        run: |
+          mkdir -p out
+          # 合并后的整本 txt
+          cp book_*/book_*.txt out/ 2>/dev/null || true
+          # 目录清单 + 分章（便于核对/续传）
+          cp book_*/chapters.json out/ 2>/dev/null || true
+          echo "==== 产物清单 ===="
+          ls -lh out/ || true
+
+      - name: 上传 txt 产物（在本次运行页面底部 Artifacts 下载）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novel-txt
+          path: out/
+          retention-days: 7
+          if-no-files-found: warn
