@@ -1,0 +1,27 @@
+{
+  "name": "69shuba-downloader",
+  "version": "1.0.0",
+  "description": "用真实浏览器内核（Playwright/Chromium）绕过 Cloudflare，慢速抓取 69shuba 小说为本地 txt，支持断点续传、命令行参数、GitHub Actions 云端运行。",
+  "main": "download.js",
+  "scripts": {
+    "start": "node download.js",
+    "download": "node download.js",
+    "debug": "node debug.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "69shuba",
+    "novel",
+    "downloader",
+    "playwright",
+    "cloudflare"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.60.0"
+  }
+}
