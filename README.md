@@ -94,7 +94,9 @@ git push -u origin main
 1. 手机浏览器打开你的仓库 → **Actions** 标签
 2. 左侧选 **“下载小说”** → 右侧 **Run workflow**
 3. 填 `url`（目录页链接）、`start`/`end`（章节范围，可留默认）、`min`/`max`（间隔）→ 点绿色 **Run workflow**
-4. 关掉浏览器即可，后台跑。跑完点进那次运行，页面底部 **Artifacts → novel-txt** 下载（zip 内含整本 txt）
+4. 关掉浏览器即可，后台跑。跑完后**两种取件方式**：
+   - **推荐**：仓库 **Releases** 页面 → 最新一条 → 点 `book_*.txt` 文件名**直接下载，无需解压**（手机最方便）
+   - 兜底：那次运行页底部 **Artifacts → novel-txt**（GitHub 强制打包成 zip，需解压）
 
 ### 云端注意事项 ⚠️
 
